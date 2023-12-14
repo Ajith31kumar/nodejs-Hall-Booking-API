@@ -1,16 +1,17 @@
 const express = require('express');
-// const bodyParser = require('body-parser');
+const bodyParser = require('body-parser');
 
 const app = express();
-app.use(express.json());
+app.use(bodyParser.json());
 
 // Local variables to store data
 let rooms = [];
 let bookings = [];
 
 // Create a Room
-app.post('/createRoom', (req, res) => {
+app.post('/createRoom',express.json(), (req, res) => {
   const { seats, amenities, pricePerHour } = req.body;
+  console.log(req.body)
   const room = {
     id: rooms.length + 1,
     seats,
