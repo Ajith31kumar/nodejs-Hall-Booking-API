@@ -1,95 +1,157 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const { request, response } = require('express');
+const dotenv = require('dotenv');
 
-const app = express();
-app.use(bodyParser.json());
+const app = express(); // Instantiate the express app
+app.use(express.json());
 
-// Local variables to store data
-let rooms = [];
-let bookings = [];
+const PORT = process.env.PORT || 3050;
 
-// Create a Room
-app.post('/createRoom',express.json(), (req, res) => {
-  const { seats, amenities, pricePerHour } = req.body;
-  console.log(req.body)
-  const room = {
-    id: rooms.length + 1,
-    seats,
-    amenities,
-    pricePerHour,
-  };
-  rooms.push(room);
-  res.json({ message: 'Room created successfully', room });
+//Local variable to store rooms data
+const rooms = [
+  {
+    roomID: 0,
+    roomName: "300",
+    noOfSeatsAvailable: "2",
+    amenities: ["Hot shower", "WIFI", "Intercom", "Room service"],
+    pricePerHr: 100,
+    bookedStatus: false,
+    customerDetails: {
+      customerName: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+    },
+  },
+  {
+    roomID: 1,
+    roomName: "301",
+    noOfSeatsAvailable: "2",
+    amenities: ["Hot shower", "WIFI", "Intercom", "Room service"],
+    pricePerHr: 100,
+    bookedStatus: true,
+    customerDetails: {
+      customerName: "Rajesh",
+      date: "16/10/2021",
+      startTime: 1100,
+      endTime: 1800,
+    },
+  },
+  {
+    roomID: 2,
+    roomName: "302",
+    noOfSeatsAvailable: "2",
+    amenities: ["Hot shower", "WIFI", "Intercom", "Room service"],
+    pricePerHr: 100,
+    bookedStatus: false,
+    customerDetails: {
+      customerName: "Mallesh",
+      date: "18/10/2021",
+      startTime: 1000,
+      endTime: 1800,
+    },
+  },
+  {
+    roomID: 3,
+    roomName: "303",
+    noOfSeatsAvailable: "2",
+    amenities: ["Hot shower", "WIFI", "Intercom", "Room service"],
+    pricePerHr: 100,
+    bookedStatus: false,
+    customerDetails: {
+      customerName: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+    },
+  },
+  {
+    roomID: 4,
+    roomName: "304",
+    noOfSeatsAvailable: "2",
+    amenities: ["Hot shower", "WIFI", "Intercom", "Room service"],
+    pricePerHr: 100,
+    bookedStatus: false,
+    customerDetails: {
+      customerName: "Priya",
+      date: "16/11/2021",
+      startTime: 1200,
+      endTime: 2000,
+    },
+  },
+];
+
+
+// Home page route
+app.get("/", (request, response) => {
+  response.send("Hall Booking API");
 });
 
-// Book a Room
-app.post('/bookRoom', (req, res) => {
-  const { customerName, date, startTime, endTime, roomId } = req.body;
-  console.log(rooms,roomId)
-  const room = rooms.find((r) => r.id === roomId);
-  if (!room) {
-    return res.status(404).json({ error: 'Room not found' });
-  }
-
-  const booking = {
-    id: bookings.length + 1, 
-    customerName,
-    date,
-    startTime,
-    endTime,
-    roomId,
-  };
-  bookings.push(booking);
-  res.json({ message: 'Room booked successfully', booking });
+// Creating a room
+app.post("/rooms/create", (request, response) => {
+  const newRoom = request.body;
+  rooms.push(newRoom);
+  response.send(newRoom);
 });
 
-// List all Rooms with Booked Data
-app.get('/listRooms', (req, res) => {
-  const roomList = rooms.map((room) => {
-    const bookedData = bookings.find((booking) => booking.roomId === room.id);
-    return {
-      roomName: `Room ${room.id}`,
-      bookedStatus: bookedData ? 'Booked' : 'Available',
-      customerName: bookedData ? bookedData.customerName : '',
-      date: bookedData ? bookedData.date : '',
-      startTime: bookedData ? bookedData.startTime : '',
-      endTime: bookedData ? bookedData.endTime : '',
-    };
+// Booking a room
+app.post("/rooms", (request, response) => {
+  const booking = request.body;
+
+  rooms.map((room) => {
+    if (room.roomID == booking.roomID) {
+      console.log(room);
+      if (room.customerDetails.date != booking.date) {
+        room.customerDetails.customerName = booking.customerName;
+        room.customerDetails.date = booking.date;
+        room.customerDetails.startTime = booking.startTime;
+        room.customerDetails.endTime = booking.endTime;
+        room.bookedStatus = !room.bookedStatus;
+        response.send("Room booked successfully");
+      } else {
+        response.send("Room already booked for that date. Please choose another room");
+      }
+    }
+    return room;
   });
-  res.json(roomList);
 });
 
-// List all customers with booked Data
-app.get('/listCustomers', (req, res) => {
-  const customerList = bookings.map((booking) => ({
-    customerName: booking.customerName,
-    roomName: `Room ${booking.roomId}`,
-    date: booking.date,
-    startTime: booking.startTime,
-    endTime: booking.endTime,
-  }));
-  res.json(customerList);
+// List all rooms with booked data
+app.get("/rooms", (request, response) => {
+  response.send(
+    rooms.map((room) => {
+      if (room.bookedStatus == true) {
+        return {
+          "Room name": room.roomName,
+          "Booked Status": "Booked",
+          "Customer Name": room.customerDetails.customerName,
+          "Date": room.customerDetails.date,
+          "Start Time": room.customerDetails.startTime,
+          "End Time": room.customerDetails.endTime,
+        };
+      } else {
+        return { "Room name": room.roomName, "Booked Status": "Vacant" };
+      }
+    })
+  );
 });
 
-// List how many times a customer has booked the room
-app.get('/customerBookingHistory/:customerName', (req, res) => {
-  const { customerName } = req.params;
-  const customerHistory = bookings
-    .filter((booking) => booking.customerName === customerName)
-    .map((booking) => ({
-      customerName: booking.customerName,
-      roomName: `Room ${booking.roomId}`,
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      bookingId: booking.id,
-      bookingDate: new Date().toISOString(),
-      bookingStatus: 'Booked',
-    }));
-  res.json(customerHistory);
+// List all customers with booked data
+app.get("/customers", (request, response) => {
+  response.send(
+    rooms.map((room) => {
+      if (room.bookedStatus === true) {
+        return {
+          "Customer name": room.customerDetails.customerName,
+          "Room name": room.roomName,
+          Date: room.customerDetails.date,
+          "Start Time": room.customerDetails.startTime,
+          "End Time": room.customerDetails.endTime,
+        };
+      }
+      return null; // Include non-booked rooms in the response as well
+    }).filter((customer) => customer !== null)
+  );
 });
 
-const PORT = 3050;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log("Server has started at:", PORT));
